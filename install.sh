@@ -127,9 +127,10 @@ fi
 
 #Modify NCBI BLAST files
 echo -e "\nModifying NCBI BLAST files"
-#cd ${working_dir}/gpu_blast/
-#echo -e "sources in ${cxx_dir}\n"
-sh ./modify ${cxx_dir} > ${working_dir}/modify.output
+cd ${working_dir}
+echo -e "sources in ${cxx_dir}\n"
+echo "we are in {$PWD}"
+./modify ${cxx_dir} > ${working_dir}/modify.output
 echo $?
 if [ $? -ne 0 ]; then
     echo -e "\nError: while modirying the source code files. See \"modify.output\" for more details. Exiting..."
@@ -161,7 +162,9 @@ if [[ ! -d ${cudart_lib} ]]; then
 fi
 
 #make -f makefile.shared -B NVCC_PATH=${nvcc} PROJ_DIR=${proj_dir} CXX_DIR=${cxx_dir} CUDA_LIB=${cudart_lib} #> ${working_dir}/gpu_blast.output
-make -f Makefile -B NVCC_PATH=${nvcc} PROJ_DIR=${proj_dir} CXX_DIR=${cxx_dir} CUDA_LIB=${cudart_lib} > ${working_dir}/gpu_blast.output
+echo "project dir: ${proj_dir}"
+echo "cxx dir: ${cxx_dir}"
+make -f Makefile -B PROJ_DIR=${proj_dir} CXX_DIR=${cxx_dir} > ${working_dir}/gpu_blast.output
 
 #Modify CONF_LIB of Makefile.mk to inlcude the libraries -lgpublast and -lcudart
 cp ${build_dir}/Makefile.mk ${build_dir}/Makefile.mk.backup
