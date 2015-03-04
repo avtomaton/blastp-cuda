@@ -1,0 +1,400 @@
+************************ GPU-BLAST 1.1 [July 2013] **********************
+GPU-BLAST is designed to accelerate the gapped and ungapped protein sequence
+alignment algorithms of the NCBI-BLAST implementation. GPU-BLAST is integrated
+into the NCBI-BLAST code and produces identical results. It has been tested
+on CentOS 5.5 and Fedora 10 with an NVIDIA Tesla C1060 and Fermi C2050 GPU.
+
+GPU-BLAST is free software.
+
+Please cite the authors in any work or product based on this material:
+Panagiotis D. Vouzis and Nikolaos V. Sahinidis, "GPU-BLAST: Using graphics 
+processors to accelerate protein sequence alignment," Vol. 27, no. 2, 
+pages 182-188, Bioinformatics, 2011 (Open Access).
+
+For any questions and feedback about GPU-BLAST, contact pvouzis@cmu.edu or
+sahinidis@cmu.edu.
+
+
+
+I. Supported features
+=====================
+GPU-BLAST 1.1 supports protein alignment and is integrated in the "blastp"
+executable produced after installation. GPU-BLAST 1.1 does not support PSI BLAST.
+
+
+
+II. Installation instructions
+=============================
+
+GPU-BLAST modifies NCBI-BLAST in order to add GPU functionality.  These
+modifications do not alter the standard NCBI-BLAST when the GPU is not used.
+In addition, the results of GPU-BLAST are identical to those from NCBI-BLAST,
+irrespective of whether the GPU is used for calculations or not.
+
+GPU-BLAST has been developed and tested on NVIDIA GPUs Tesla C1060 and C2050.
+The present version requires an NVIDIA GPU and the CUDA nvcc compiler.
+
+1) Download, unpack, and unzip gpu-blast-1.1-blast-2.2.28.tar.gz in a folder.
+The naming denotes that this version of GPU-BLAST is 1.1 and it is compatible with
+NCBI-BLAST 2.2.28.
+
+For example, on Linux/Unix:
+
+$tar -xzf gpu-blast-1.1_ncbi-blast-2.2.28.tar.gz
+
+This will create this "README" file, the folder "gpu_blast" that contains the
+source code of GPU-BLAST, the folder "queries" that contains sample amino-acid
+queries, and the file "install".
+
+2) To install GPU-BLAST run "install <ncbi-blast version>".  For example, on Linux/Unix:
+
+$./install 
+
+This will:
+i.   Ask the user whether GPU-BLAST should be added to an existing BLAST installation or
+     whether NCBI-BLAST should be installed as well.
+ii.  Modify the existing NCBI-BLAST installation or download, unpack and unzip NCBI-BLAST from
+     ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.2.28
+     depending on what was selected by the user in (i).
+iii. Compile the CUDA files.
+iv.  Embed GPU-BLAST into the existing or downloaded NCBI-BLAST.
+
+In order to add GPU functionality to an existing installation of NCBI-BLAST,
+unzip and untar GPU-BLAST in the directory with the NCBI-BLAST source code.
+
+The installation configures GPU-BLAST with the following options
+./configure --without-debug --with-mt --without-sybase --without-ftds --without-fastcgi
+--without-fltk --without-wxwin --without-ncbi-c --without-sssdb --without-sss
+--without-geo --without-sp --without-orbacus --without-boost
+
+These are options of NCBI's configuration file. If you want to change these options,
+edit the file "install". For more information type
+"ncbi-blast-2.2.28+-src/c++/configure -help"
+
+If the installation is successful, you should find the executable "blastp" in
+"./ncbi-blast-2.2.28+-src/c++/GCC412-ReleaseMT64/bin/".
+
+NOTE: The directory "GCC412-ReleaseMT64" might differ on your system, depending
+on the version of GCC and on whether you use 32-bit or 64-bit operating system.
+
+NOTE: For running concurrently multiple instances of GPU-BLAST: if you have more 
+than one GPU and you want to run concurrently multiple instances of GPU-BLAST you
+need to change the compute mode of all GPUs to "exclusive" by using NVIDIA's System 
+Management Interface (type "nvidia-smi --help" and look at Section 3.6 of the CUDA 
+Programming Guide 3.2 for more information). The command "nvidia-smi --show-compute-mode-rules" 
+shows the compute mode of all GPUs, and the command "nvidia-smi --gpu=0 --compute-mode-rules=1" 
+sets the compute mode of GPU 0 to "exclusive." If you run concurrently more 
+instances of GPU-BLAST than the number of GPUs, GPU-BLAST is not guaranteed to 
+produce the correct results. 
+
+
+
+III. How to use GPU-BLAST
+========================
+
+If the above process is successful, the NCBI-BLAST installed will offer the
+additional option of using GPU-BLAST. The interface of GPU-BLAST is identical
+to the original NCBI-BLAST interface with the following additional options
+for "blastp":
+
+ *** GPU options
+ -gpu <Boolean>
+   Use GPU for blastp
+   Default = `F'
+ -gpu_threads <Integer, 1..1024>
+   Number of GPU threads per block
+   Default = `64'
+ -gpu_blocks <Integer, 1..65536>
+  Number of GPU block per grid
+   Default = `512'
+ -method <Integer, 1..2>
+   Method to be used
+     1 = for GPU-based sequence alignment (default),
+     2 = for GPU database creation
+   Default = `1'
+    * Incompatible with:  num_threads
+
+Typing "./blastp -help" will print the above options towards the end of the output.
+
+GPU-BLAST also adds the option "-sort_volumes" in the "makeblastdb" executable in
+"/ncbi-blast-2.2.28+-src/c++/GCC412-ReleaseMT64/bin". "makeblastdb" is an executable that
+formats a FASTA database to the appropriate format to be used by NCBI-BLAST. The option
+"-sort_volumes" sorts the database volumes produced according to length.
+
+NOTE: "makeblast" has the option to split input databases in chunks, called volumes, according
+to the users choice.
+
+When you type "./makeblastdb -help", you will see the additional option listed in
+comparison to the original NCBI-BLAST "makeblastdb"
+
+ *** Miscellaneous options
+ -sort_volumes
+   Sort the sequences according to length in each volume
+
+To use GPU-BLAST, first sort the protein database according to sequence length,
+and then create a database for the GPU.
+
+1) Sorting a database
+To sort a database use the option "-sort_volumes" with "makeblastdb".
+"-sort_volumes" works only with protein FASTA-formated databases. Assuming
+"makeblastdb" is in the directory "/blast" and the database "env_nr"
+is saved in the directory "/blast/database", on Linux/Unix type:
+
+"./makeblastdb -in ./database/env_nr -out ./database/sorted_env_nr -sort_volumes"
+
+This will produce the file "sorted_env_nr", containing the sorted database.
+
+Since this process only sorts the database, the "sorted_env_nr" will produce
+identical alignments with the original "env_nr", no matter whether GPU-BLAST
+is used or not.
+
+NOTE: By using the option "-sort_volumes", "makeblastdb" stores in a vector each
+volume of the produced database in order to sort it. This may require large amounts
+of memory, depending on the database size and the options used with "makeblastdb".
+If, by using "-sort_volumes", the program runs out of memory, consider using the
+option "-max_file_sz" to produce smaller database volumes compared to the default
+NCBI size which is 1 GB. E.g. in Linux/Unix type:
+
+"makeblastdb -in <File_In> -out <String> -sort_volumes -max_file_sz 300MB"
+
+to produce database volumes with size up to 300 MB.
+
+2) Creating a GPU database
+To create the database in the appropriate GPU-BLAST format from the sorted
+database created in the previous step, treat the sorted database as any database
+that you would use to align a sequence against; i.e., format and sort the input
+database with "makeblastdb" (see step 1). Then, execute "./blastp" with the added
+options "-gpu T -method 2 -gpu_blocks <Integer, 1..65536> -gpu_threads <Integer, 1..1024>".
+For example, to create a database for GPU-BLAST of the "sorted_env_nr", type
+
+"./blastp -query ../queries/sequence_length_01000.txt -db ../database/sorted_env_nr -gpu t -method 2 -gpu_blocks 256 -gpu_threads 32"
+
+The options "-gpu_blocks" and "-gpu_threads" are optional when creating the GPU
+database.  If they are not specified, their default values are 512 and 64, respectively.
+
+NOTE: the option "-method" is incompatible with "-num_threads".
+
+This will create the files "sorted_env_nr.gpu" and "sorted_env_nr.gpuinfo" in the same
+directory with "sorted_env_nr".
+
+You are now ready to use GPU-BLAST. To search the database with the query
+"sequence_length_01000.txt", type
+
+"./blastp -query ../queries/sequence_length_01000.txt -db ../database/sorted_env_nr -gpu t"
+
+NOTE: if during execution you get the message
+
+	WARNING: Not enough GPU global memory to process volume No. 00 of the database. Continuing without the CPU...
+	         Consider splitting the input database in volumes with smaller size by using the option "-max_file_size <String>" (e.g. -max_file_sz 500MB).
+	         Consider using fewer GPU blocks and then fewer GPU thread when formatting the database with (e.g. "-gpu_blocks 256" and/or "-gpu_threads 32") to reduce the GPU global memory requirements.
+
+then your GPU does not have enough global memory to carry out the sequence alignment of the
+current database volume under the current GPU database configuration. To overcome this problem, you
+can reformat the database with "makeblastdb" with a value for "-max_file_sz" smaller than your
+previous choice. Another option is to recreate the GPU database by using the options "-method 2" and
+smaller values for "-gpu_blocks" and/or "-gpu_threads" than your previous choices (or use smaller
+values than 512 and 64 if you let GPU-BLAST create the GPU database with the default values as shown
+in the example above).
+
+
+
+IV. Sample scenario
+====================
+
+The following sequence of commands are on a CentOS 5.5 with CUDA 3.2.
+The steps cover the installation of GPU-BLAST, the formatting and sorting of a
+database and the execution of a GPU-BLAST search.
+
+The login shell is bash.
+
+1.a) Adding GPU functionality to an existing installation of NCBI-BLAST.
+The directory of the existing installation of NCBI-BLAST is "blast"
+
+[pvouzis@eratosthenes blast]$ ls
+ncbi-blast-2.2.28+-src
+[pvouzis@eratosthenes blast]$ wget http://eudoxus.cheme.cmu.edu/gpublast/gpu-blast-1.1_ncbi-blast-2.2.28.tar.gz
+--2010-10-19 13:02:07--  http://eudoxus.cheme.cmu.edu/gpublast/gpu-blast-1.1_ncbi-blast-2.2.28.tar.gz
+Resolving eudoxus.cheme.cmu.edu... 128.2.55.71
+Connecting to eudoxus.cheme.cmu.edu|128.2.55.71|:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 316399 (309K) [application/x-gzip]
+Saving to: `gpu-blast-1.1_ncbi-blast-2.2.28.tar.gz'
+
+100%[====================================================================================================================>] 316,399     --.-K/s   in 0.03s
+
+2010-10-19 13:02:08 (11.2 MB/s) - `gpu-blast-1.1_ncbi-blast-2.2.28.tar.gz' saved [316399/316399]
+
+[pvouzis@eratosthenes blast]$ ls
+gpu-blast-1.1_ncbi-blast-2.2.28.tar.gz  ncbi-blast-2.2.28+-src
+[pvouzis@eratosthenes blast]$ tar -xzf gpu-blast-1.1_ncbi-blast-2.2.28.tar.gz
+[pvouzis@eratosthenes blast]$ ls
+gpu_blast  gpu-blast-1.1_ncbi-blast-2.2.28.tar.gz  install  ncbi-blast-2.2.28+-src  queries  README
+[pvouzis@eratosthenes blast]$ sh ./install 
+Do you want to install GPU-BLAST on an existing installation of "blastp" [yes/no]
+yes: you will be asked for the installation directory of the "blastp" executable
+no: will download and install "ncbi-blast-2.2.28+-src"
+yes
+Please input the installation directory of "blastp" of "ncbi-blast-2.2.28+-src"
+/home/pvouzis/Documents/ncbi_blast/blast/ncbi-blast-2.2.28+-src/c++/GCC412-ReleaseMT64/bin
+"blastp" version 2.2.28+ is compatible
+Continuing with the installation of GPU-BLAST...
+
+Modifying NCBI-BLAST files
+.
+Compiling CUDA code
+
+Building NCBI-BLAST with GPU-BLAST
+........................................................................................................................................................................................................................................................................
+
+1.b) Downloading the NCBI-BLAST source code and adding GPU functionality.
+
+[pvouzis@eratosthenes blast]$ wget http://eudoxus.cheme.cmu.edu/gpublast/gpu-blast-1.1_ncbi-blast-2.2.28.tar.gz
+--2010-10-19 12:37:01--  http://eudoxus.cheme.cmu.edu/gpublast/gpu-blast-1.1_ncbi-blast-2.2.28.tar.gz
+Resolving eudoxus.cheme.cmu.edu... 128.2.55.71
+Connecting to eudoxus.cheme.cmu.edu|128.2.55.71|:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 316399 (309K) [application/x-gzip]
+Saving to: “gpu-blast-1.1_ncbi-blast-2.2.28.tar.gz”
+
+100%[=====================================================================================================================================================>] 316,399     --.-K/s   in 0.03s
+
+2010-10-19 12:37:01 (11.3 MB/s) - “gpu-blast-1.1_ncbi-blast-2.2.28.tar.gz” saved [316399/316399]
+
+[pvouzis@eratosthenes blast]$ ls
+gpu-blast-1.1_ncbi-blast-2.2.28.tar.gz
+[pvouzis@eratosthenes blast]$ tar -xzf gpu-blast-1.1_ncbi-blast-2.2.28.tar.gz
+[pvouzis@eratosthenes blast]$ ls
+gpu_blast  gpu-blast-1.1_ncbi-blast-2.2.28.tar.gz  install  queries  README
+[pvouzis@eratosthenes blast]$ sh ./install
+Do you want to install GPU-BLAST on an existing installation of "blastp" [yes/no]
+yes: you will be asked for the installation directory of the "blastp" executable
+no: will download and install "ncbi-blast-2.2.28+-src"
+no
+Continuing with the downloading of ncbi-blast-2.2.28+-src...
+Downloading NBCI BLAST
+--2010-10-19 12:41:55--  ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.2.28+-src.tar.gz
+           => “ncbi-blast-2.2.28+-src.tar.gz”
+Resolving ftp.ncbi.nlm.nih.gov... 130.14.29.30
+Connecting to ftp.ncbi.nlm.nih.gov|130.14.29.30|:21... connected.
+Logging in as anonymous ... Logged in!
+==> SYST ... done.    ==> PWD ... done.
+==> TYPE I ... done.  ==> CWD (1) /blast/executables/blast+/LATEST ... done.
+==> SIZE ncbi-blast-2.2.28+-src.tar.gz ... 11482581
+==> PASV ... done.    ==> RETR ncbi-blast-2.2.28+-src.tar.gz ... done.
+Length: 11482581 (11M) (unauthoritative)
+
+100%[=====================================================================================================================================================>] 11,482,581  6.80M/s   in 1.6s
+
+2010-10-19 12:41:57 (6.80 MB/s) - “ncbi-blast-2.2.28+-src.tar.gz” saved [11482581]
+
+
+Extracting NCBI-BLAST
+...
+.
+Configuring ncbi-blast-2.2.28+-src with options:
+
+./configure --without-debug --with-mt --without-sybase --without-ftds --without-fastcgi --without-fltk --without-wxwin --without-ncbi-c --without-sssdb --without-sss --without-geo --without-sp --without-orbacus --without-boost
+
+If you want to change these options edit the file "install", delete the directory ncbi-blast-2.2.28+-src, and rerun install
+....................
+
+Modifying NCBI-BLAST files
+.
+Compiling CUDA code
+
+Building NCBI-BLAST with GPU-BLAST
+........................................................................................................................................................................................................................................................................
+
+[pvouzis@eratosthenes blast]$ ls
+configure.output  gpu-blast-1.1_ncbi-blast-2.2.28.tar.gz  install        ncbi-blast-2.2.28+-src         ncbi_blast.output  README
+gpu_blast         gpu_blast.output                        modify.output  ncbi-blast-2.2.28+-src.tar.gz  queries
+
+2) Downloading and sorting the env_nr database.
+
+[pvouzis@eratosthenes blast]$ mkdir database/
+[pvouzis@eratosthenes blast]$ cd database/
+[pvouzis@eratosthenes database]$ wget ftp://ftp.ncbi.nlm.nih.gov/blast/db/FASTA/env_nr.gz
+--2010-10-04 21:12:25--  ftp://ftp.ncbi.nlm.nih.gov/blast/db/FASTA/env_nr.gz
+           => `env_nr.gz'
+Resolving ftp.ncbi.nlm.nih.gov... 130.14.29.30
+Connecting to ftp.ncbi.nlm.nih.gov|130.14.29.30|:21... connected.
+Logging in as anonymous ... Logged in!
+==> SYST ... done.    ==> PWD ... done.
+==> TYPE I ... done.  ==> CWD /blast/db/FASTA ... done.
+==> SIZE env_nr.gz ... 827145187
+==> PASV ... done.    ==> RETR env_nr.gz ... done.
+Length: 827145187 (789M)
+
+100%[====================================================================================================================>] 827,145,187 6.14M/s   in 87s
+
+2010-10-04 21:13:54 (9.02 MB/s) - `env_nr.gz' saved [827145187]
+
+[pvouzis@eratosthenes database]$ gunzip env_nr.gz
+[pvouzis@eratosthenes database]$ cd ../ncbi-blast-2.2.28+-src/c++/GCC412-ReleaseMT64/bin/
+[pvouzis@eratosthenes bin]$ ./makeblastdb -in ../../../../database/env_nr -out ../../../../database/sorted_env_nr -sort_volumes -max_file_sz 500MB
+
+
+Building a new DB, current time: 10/04/2010 21:16:46
+New DB name:   ../../../../database/sorted_env_nr
+New DB title:  ../../../../database/env_nr
+Sequence type: Protein
+Keep Linkouts: T
+Keep MBits: T
+Maximum file size: 524288000B
+Sorting 2676410 sequences
+Writing to Volume
+Done Writing to Database
+Sorting 2677316 sequences
+Writing to Volume
+Done Writing to Database
+Adding sequences from FASTA; added 6031291 sequences in 267.507 seconds.
+Sorting 677565 sequences
+Writing to Volume
+Done Writing to Database
+
+3) Creating the GPU database and carrying out a protein alignment with and without the GPU
+
+[pvouzis@eratosthenes bin]$ ./blastp -db ../../../../database/sorted_env_nr -query ../../../../queries/sequence_length_03000.txt -gpu t -method 2
+../../../../database/sorted_env_nr.00.pin: 2676410
+../../../../database/sorted_env_nr.01.pin: 2677316
+../../../../database/sorted_env_nr.02.pin: 677565
+num_volumes = 3
+Done with creating the GPU Database file (../../../../database/sorted_env_nr.00.gpu)
+Done with creating the GPU Database file (../../../../database/sorted_env_nr.01.gpu)
+Done with creating the GPU Database file (../../../../database/sorted_env_nr.02.gpu)
+BLASTP 2.2.28+
+
+
+Reference: Stephen F. Altschul, Thomas L. Madden, Alejandro A.
+Schaffer, Jinghui Zhang, Zheng Zhang, Webb Miller, and David J.
+Lipman (1997), "Gapped BLAST and PSI-BLAST: a new generation of
+protein database search programs", Nucleic Acids Res. 25:3389-3402.
+
+
+Reference for composition-based statistics: Alejandro A. Schaffer,
+L. Aravind, Thomas L. Madden, Sergei Shavirin, John L. Spouge, Yuri
+I. Wolf, Eugene V. Koonin, and Stephen F. Altschul (2001),
+"Improving the accuracy of PSI-BLAST protein database searches with
+composition-based statistics and other refinements", Nucleic Acids
+Res. 29:2994-3005.
+
+
+
+Database: ../../../../database/env_nr
+           6,031,291 sequences; 1,208,071,099 total letters
+[pvouzis@eratosthenes bin]$ time ./blastp -db ../../../../database/sorted_env_nr -query ../../../../queries/sequence_length_03000.txt -num_threads 2 -gpu t  > gpu_output.txt
+
+real    0m32.244s
+user    0m59.115s
+sys     0m3.007s
+[pvouzis@eratosthenes bin]$ time ./blastp -db ../../../../database/sorted_env_nr -query ../../../../queries/sequence_length_03000.txt -num_threads 2 -gpu f  > cpu_output.txt
+
+real    1m24.220s
+user    2m27.913s
+sys     0m0.332s
+[pvouzis@eratosthenes bin]$ diff cpu_output.txt gpu_output.txt
+[pvouzis@eratosthenes bin]$
+
+
+NOTE: For this example, use of the GPU results in over 2.5 times speedup compare to
+the two-threaded NCBI-BLAST.
