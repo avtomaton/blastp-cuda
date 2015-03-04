@@ -82,10 +82,10 @@ public:
                                  m_OptsMemento->m_PSIBlastOpts,
                                  m_OptsMemento->m_DbOpts,
 /* *********** START ************* */
-                                                              m_OptsMemento->m_GpuOpts,
+								 m_OptsMemento->m_GpuOpts,
 				 /* ********** FINISH ************* */
-                                                              m_InternalData.m_HspStream->GetPointer(),
-                                                              m_InternalData.m_Diagnostics->GetPointer(),
+								 m_InternalData.m_HspStream->GetPointer(),
+								 m_InternalData.m_Diagnostics->GetPointer(),
                                  m_InternalData.m_FnInterrupt,
                                  m_InternalData.m_ProgressMonitor->Get());
         return static_cast<int>(retval);

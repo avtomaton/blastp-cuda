@@ -1522,7 +1522,7 @@ Blast_RunPreliminarySearch(EBlastProgramType program,
     return Blast_RunPreliminarySearchWithInterrupt(program,
            query, query_info, seq_src, score_options, sbp, lookup_wrap,
            word_options, ext_options, hit_options, eff_len_options,
-                                                   psi_options, db_options,gpu_options, hsp_stream, diagnostics, NULL, NULL);
+		   psi_options, db_options, gpu_options, hsp_stream, diagnostics, NULL, NULL);
 }
 
 Int2 
