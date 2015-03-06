@@ -1,16 +1,16 @@
-#include <stdlib.h>
+#include "gpu_blastp.h"
+#include "gpu_blastp_kernel.cu"
+#include "gpu_blastp_kernel.h"
+
+#include <algo/blast/core/gpu_cpu_common.h>
+#include <algo/blast/core/blast_aalookup.h>
+
+#include <cuda.h>
+#include <cuda_runtime.h>
+
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-
-// includes, kernels
-
-#include "gpu_blastp.h"
-#include "gpu_blastp_kernel.cu"
-#include <algo/blast/core/gpu_cpu_common.h>
-#include "gpu_blastp_kernel.h"
-
-#include <algo/blast/core/blast_aalookup.h>
 
 
 void  GPU_BLASTP(const BLAST_SequenceBlk* query, const BlastQueryInfo* query_info,
@@ -329,16 +329,12 @@ Boolean GPU_BLASTP_check_memory(const LookupTableWrap* lookup_wrap,
     return TRUE;
 }
 
-Boolean GPU_BLAST_check_availability(){
-
-    int deviceCount = 0;
-    if (cudaGetDeviceCount(&deviceCount) != 0)
-        return FALSE;
-
-    if ( 0 == deviceCount )
-        return FALSE;
-
-    return TRUE;
+Boolean GPU_BLAST_check_availability()
+{
+	int deviceCount = 0;
+	if (cudaGetDeviceCount(&deviceCount) != cudaSuccess)
+		return FALSE;
+	if (deviceCount == 0)
+		return FALSE;
+	return TRUE;
 }
-
-    

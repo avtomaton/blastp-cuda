@@ -11,31 +11,34 @@
 
 void Round2Multiple(int* const MaxLength)
 {    
-    int remainder = *MaxLength % WIDTH_MULTIPLE;
-    
-    if( 0 != remainder)
-        *MaxLength += (WIDTH_MULTIPLE - remainder);
-    
+	int remainder = *MaxLength % WIDTH_MULTIPLE;
+	if (remainder)
+		*MaxLength += (WIDTH_MULTIPLE - remainder);
 }
 
-void MultipleCopyPV(PV_ARRAY_TYPE* h_RepeatedPV, PV_ARRAY_TYPE* h_pv, int pv_length, int num_blocksx)
+void MultipleCopyPV(PV_ARRAY_TYPE* h_RepeatedPV, PV_ARRAY_TYPE* h_pv,
+					int pv_length, int num_blocksx)
 {
-    int offset = 0;
-    for(int block = 0; block < num_blocksx; ++block)
-    {
-        memcpy(&h_RepeatedPV[offset], h_pv, pv_length*sizeof(PV_ARRAY_TYPE));
-        offset += pv_length;
-    }
+	int offset = 0;
+	for (int block = 0; block < num_blocksx; ++block)
+	{
+		memcpy(&h_RepeatedPV[offset], h_pv, pv_length * sizeof(PV_ARRAY_TYPE));
+		offset += pv_length;
+	}
 }
 
-void MultipleCopyMaxlength(int* h_Repeated_SequenceMaxlength_vector, const int* Sequence_Maxlength_vector, const int Group_number, const int stride, const int NumSequences)
+void MultipleCopyMaxlength(int* h_Repeated_SequenceMaxlength_vector,
+						   const int* Sequence_Maxlength_vector,
+						   const int Group_number, const int stride,
+						   const int NumSequences)
 {
-    int offset = 0;
-    for(int i = 0; i < NumSequences; ++i)
-    {
-        memcpy(&h_Repeated_SequenceMaxlength_vector[offset], Sequence_Maxlength_vector, Group_number*sizeof(int));
-        offset += stride;
-    }
+	int offset = 0;
+	for (int i = 0; i < NumSequences; ++i)
+	{
+		memcpy(&h_Repeated_SequenceMaxlength_vector[offset],
+			   Sequence_Maxlength_vector, Group_number * sizeof(int));
+		offset += stride;
+	}
 }
 
 void ReadSubstitutionMatrix(char *h_SubstitutionMatrix, char *h_RepeatedSubstitutionMatrix, int SubstitutionMatrix_length,  int num_blocksx)
