@@ -9,21 +9,18 @@ COMMONFLAGS := -c
 #incompatible with some NCBI_BLAST data structures, i.e. the "BlastContextInfo"
 NVCCFLAGS :=  --compiler-options -fno-strict-aliasing --compiler-options -fno-inline -DUNIX -O3 --no-align-double 
 
-#PROJ_DIR=
-INCLUDES= -I$(CXX_DIR)/include/ -I$(PROJ_DIR)/inc/ -I./ncbi_blast_files
+INCLUDES= -I$(BLAST_DIR)/include/ -I$(BUILD_DIR)/inc/ -I$(PATCH_DIR)/ncbi_blast_files
 
-all: libgpublast.a
+all: $(BUILD_DIR)/lib/libgpublast.a
 
-libgpublast.a : gpu_blastp.o gpu_blastp.cu.o gpu_blastp_kernel.h 
-	ar cru libgpublast.a gpu_blastp.o gpu_blastp.cu.o
-	ranlib libgpublast.a	
-	cp libgpublast.a                          $(PROJ_DIR)/lib/
-	#cp $(CUDA_LIB)/libcudart.so               $(PROJ_DIR)/lib/
+$(BUILD_DIR)/lib/libgpublast.a : $(BUILD_DIR)/gpu_blastp.o $(BUILD_DIR)/gpu_blastp.cu.o gpu_blastp_kernel.h 
+	ar cru $(BUILD_DIR)/lib/libgpublast.a $(BUILD_DIR)/gpu_blastp.o $(BUILD_DIR)/gpu_blastp.cu.o
+	ranlib $(BUILD_DIR)/lib/libgpublast.a
 
-gpu_blastp.o : gpu_blastp.c gpu_blastp.h gpu_blastp_kernel.cu 
-	$(CXX) $(COMMONFLAGS) gpu_blastp.c -o gpu_blastp.o $(INCLUDES)
+$(BUILD_DIR)/gpu_blastp.o : gpu_blastp.c gpu_blastp.h gpu_blastp_kernel.cu 
+	$(CXX) $(COMMONFLAGS) gpu_blastp.c -o $(BUILD_DIR)/gpu_blastp.o $(INCLUDES)
 
-gpu_blastp.cu.o : gpu_blastp.cu gpu_blastp.h gpu_blastp_kernel.cu gpu_blastp_kernel.h 
-	$(NVCC) $(COMMONFLAGS) $(NVCCFLAGS) gpu_blastp.cu -o gpu_blastp.cu.o $(INCLUDES)
+$(BUILD_DIR)/gpu_blastp.cu.o : gpu_blastp.cu gpu_blastp.h gpu_blastp_kernel.cu gpu_blastp_kernel.h
+	$(NVCC) $(COMMONFLAGS) $(NVCCFLAGS) gpu_blastp.cu -o $(BUILD_DIR)/gpu_blastp.cu.o $(INCLUDES)
 
 
