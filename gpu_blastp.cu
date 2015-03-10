@@ -23,11 +23,13 @@ void  GPU_BLASTP(const BLAST_SequenceBlk* query, const BlastQueryInfo* query_inf
                  PV_ARRAY_TYPE** d_RepeatedPV, AaLookupSmallboneCell** d_ThickBackbone, Uint2** d_overflow, Int4** d_RepeatedDiag_array
                  )
 {
+	const Int4 num_threadsy = 1;
+	const Int4 num_blocksy = 1;
+	const Int4 num_blocksx = gpu_options->num_blocksx;
+	const Int4 num_threadsx = gpu_options->num_threadsx;
+	const Int4 num_sequences = gpu_options->num_sequences_to;
 
-    const Int4 num_threadsy = 1, num_blocksy = 1;
-    const Int4 num_blocksx = gpu_options->num_blocksx, num_threadsx = gpu_options->num_threadsx,  num_sequences = gpu_options->num_sequences_to;
-
-    if( GPU_VERBOSE )
+	if (GPU_VERBOSE)
         fprintf(stderr,"threadId = 0: Number of processed sequences by the GPU = %5d\n", num_sequences);
 
     //Group_number is the number of groups that the sequences are divided into, and is determined by the number of threads, since each thread processes one sequence at a time.
@@ -65,8 +67,6 @@ void  GPU_BLASTP(const BLAST_SequenceBlk* query, const BlastQueryInfo* query_inf
     int window = ewp->diag_table->window;
     int diag_offset = ewp->diag_table->offset;
 
-
-
     int Query_length = query->length;
     unsigned char* h_Query = query->sequence;
 
@@ -74,7 +74,7 @@ void  GPU_BLASTP(const BLAST_SequenceBlk* query, const BlastQueryInfo* query_inf
     int* h_cutoff_score = (int*)malloc(query_info->num_queries * sizeof(int) );
     int* h_query_offset = (int*)malloc(query_info->num_queries * sizeof(int) );
 
-    for(int i = 0; i < query_info->num_queries; ++i)
+	for (int i = 0; i < query_info->num_queries; ++i)
     {
         h_x_dropoff[i] = word_params->cutoffs[i].x_dropoff;
         h_cutoff_score[i] = word_params->cutoffs[i].cutoff_score;
@@ -87,16 +87,18 @@ void  GPU_BLASTP(const BLAST_SequenceBlk* query, const BlastQueryInfo* query_inf
     char* h_RepeatedSubstitutionMatrix = (char*) calloc ( h_RepeatedSubstitutionMatrix_bytes, sizeof(char) );
     ReadSubstitutionMatrix( h_SubstitutionMatrix, h_RepeatedSubstitutionMatrix, SUBSTITUTION_MATRIX_LENGTH, num_blocksx );
 
-    if( GPU_VERBOSE )
-        fprintf(stderr,"threadId = 0: Global memory allocated memory size = %lf Mb\n",(double)(h_Database2Dpadded_bytes +
-                                                                                               h_RepeatedSubstitutionMatrix_bytes +
-                                                                                               h_RepeatedSequence_length_vector_bytes +
-                                                                                               h_Hits_bytes +
-                                                                                               h_RepeatedPV_bytes+
-                                                                                               h_ThickBackbone_bytes+
-                                                                                               h_overflow_bytes+
-                                                                                               h_RepeatedDiag_array_bytes +
-                                                                                               h_GPUBlastInitHitList_bytes)/1e6);
+	if (GPU_VERBOSE)
+		fprintf(stderr,
+			"threadId = 0: Global memory allocated memory size = %lf Mb\n",
+			(double)(h_Database2Dpadded_bytes +
+					 h_RepeatedSubstitutionMatrix_bytes +
+					 h_RepeatedSequence_length_vector_bytes +
+					 h_Hits_bytes +
+					 h_RepeatedPV_bytes+
+					 h_ThickBackbone_bytes+
+					 h_overflow_bytes+
+					 h_RepeatedDiag_array_bytes +
+					 h_GPUBlastInitHitList_bytes) / 1e6);
 
 
     unsigned long long int BytesTransferredToGlobalMemory =
@@ -160,54 +162,63 @@ void  GPU_BLASTP(const BLAST_SequenceBlk* query, const BlastQueryInfo* query_inf
     cudaMemcpy( *d_ThickBackbone, h_ThickBackbone, h_ThickBackbone_bytes, cudaMemcpyHostToDevice) ;
     cudaMemcpy( *d_overflow, h_overflow, h_overflow_bytes, cudaMemcpyHostToDevice) ;
 
-    if( GPU_VERBOSE )
+	if (GPU_VERBOSE)
         fprintf(stderr,"threadId = 0: Done with copying GPU memory\n");
 
     // setup execution parameters
-    dim3  grid( num_blocksx, num_blocksy, 1);
-    dim3  threads( num_threadsx, num_threadsy, 1);
+	dim3 grid( num_blocksx, num_blocksy, 1);
+	dim3 threads( num_threadsx, num_threadsy, 1);
     int mem_size = 0;
 
-    mem_size = pv_length*sizeof(PV_ARRAY_TYPE) + SUBSTITUTION_MATRIX_LENGTH*sizeof(char) + Sequence_length_vector_stride*sizeof(int) + 2 * num_threadsx * 4 * sizeof(char);
-    cudaMemcpyToSymbol( d_Query_const, h_Query, Query_length ) ;
-    cudaMemcpyToSymbol( d_x_dropoff_const, h_x_dropoff, query_info->num_queries*sizeof(int) );
-    cudaMemcpyToSymbol( d_cutoff_score_const, h_cutoff_score, query_info->num_queries*sizeof(int) );
-    cudaMemcpyToSymbol( d_query_offset_const, h_query_offset, query_info->num_queries*sizeof(int) );
+	mem_size = pv_length * sizeof(PV_ARRAY_TYPE) +
+		SUBSTITUTION_MATRIX_LENGTH * sizeof(char) +
+		Sequence_length_vector_stride*sizeof(int) +
+		2 * num_threadsx * 4 * sizeof(char);
+	cudaMemcpyToSymbol(d_Query_const, h_Query, Query_length);
+	cudaMemcpyToSymbol(d_x_dropoff_const, h_x_dropoff,
+		query_info->num_queries * sizeof(int));
+	cudaMemcpyToSymbol(d_cutoff_score_const, h_cutoff_score,
+		query_info->num_queries*sizeof(int));
+	cudaMemcpyToSymbol(d_query_offset_const, h_query_offset,
+		query_info->num_queries*sizeof(int));
 
     cudaDeviceProp deviceProp;
     cudaGetDeviceProperties(&deviceProp, 0);
-    if(mem_size > deviceProp.sharedMemPerBlock)
-        fprintf(stderr,"ERROR: Shared memory requirements (%d bytes per block) bigger than available memory (16384 bytes)!!\n",mem_size);
+	if (mem_size > deviceProp.sharedMemPerBlock)
+		fprintf(stderr,
+			"ERROR: Shared memory requirements (%d bytes per block) "
+			"bigger than available memory (%d bytes)!!\n",
+			mem_size, deviceProp.sharedMemPerBlock);
 
-    // execute the kernel
-    if( GPU_VERBOSE )
-        fprintf(stderr,"threadId = 0: Kernel execution...\n");
+	// execute the kernel
+	if (GPU_VERBOSE)
+		fprintf(stderr,"threadId = 0: Kernel execution...\n");
 
-    GPU_BLASTP_kernelTwoHit<<< grid, threads, mem_size >>>( *d_Database2Dpadded,
-                                                            *d_RepeatedSubstitutionMatrix,
-                                                            SUBSTITUTION_MATRIX_LENGTH,
-                                                            *d_RepeatedPV,
-                                                            *d_ThickBackbone, *d_overflow,
-                                                            *d_RepeatedSequence_length_vector,
-                                                            Sequence_length_vector_stride,
-                                                            num_sequences, pv_length,
-                                                            Query_length, diag_mask, diag_array_length,
-                                                            query_info->num_queries,
-                                                            lookup->word_length, lookup->charsize,
-                                                            lookup->mask, window, diag_offset,
-                                                            *d_RepeatedDiag_array, *d_Hits, *d_GPUBlastInitHitList );
-    if( GPU_VERBOSE )
-        fprintf(stderr,"threadId = 0: Done with kernel execution\n");
+	GPU_BLASTP_kernelTwoHit<<< grid, threads, mem_size >>>(
+		*d_Database2Dpadded,
+		*d_RepeatedSubstitutionMatrix,
+		SUBSTITUTION_MATRIX_LENGTH,
+		*d_RepeatedPV,
+		*d_ThickBackbone, *d_overflow,
+		*d_RepeatedSequence_length_vector,
+		Sequence_length_vector_stride,
+		num_sequences, pv_length,
+		Query_length, diag_mask, diag_array_length,
+		query_info->num_queries,
+		lookup->word_length, lookup->charsize,
+		lookup->mask, window, diag_offset,
+		*d_RepeatedDiag_array, *d_Hits, *d_GPUBlastInitHitList);
+	if (GPU_VERBOSE)
+		fprintf(stderr,"threadId = 0: Done with kernel execution\n");
 
-    free(h_RepeatedSequence_length_vector);
-    free(h_RepeatedPV);
-    free(h_diag_array);
-    free(h_x_dropoff);
-    free(h_cutoff_score);
-    free(h_query_offset);
-    free(h_SubstitutionMatrix);
-    free(h_RepeatedSubstitutionMatrix);
-
+	free(h_RepeatedSequence_length_vector);
+	free(h_RepeatedPV);
+	free(h_diag_array);
+	free(h_x_dropoff);
+	free(h_cutoff_score);
+	free(h_query_offset);
+	free(h_SubstitutionMatrix);
+	free(h_RepeatedSubstitutionMatrix);
 }
 
 void GPU_BLASTP_get_data(const Int4* h_Hits,
