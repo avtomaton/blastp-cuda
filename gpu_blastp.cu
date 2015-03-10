@@ -221,13 +221,11 @@ void  GPU_BLASTP(const BLAST_SequenceBlk* query, const BlastQueryInfo* query_inf
 	free(h_RepeatedSubstitutionMatrix);
 }
 
-void GPU_BLASTP_get_data(const Int4* h_Hits,
-                         Int4* d_Hits,
-                         const Int4 h_Hits_bytes,
-                         GPUBlastInitHitList* h_GPUBlastInitHitList,
-                         GPUBlastInitHitList* d_GPUBlastInitHitList,
-                         const Int4 h_GPUBlastInitHitList_bytes,
-                         const Int4 num_sequences)
+void GPU_BLASTP_get_data(
+	Int4* h_Hits, Int4* d_Hits, const Int4 h_Hits_bytes,
+	GPUBlastInitHitList* h_GPUBlastInitHitList,
+	GPUBlastInitHitList* d_GPUBlastInitHitList, Int4 h_GPUBlastInitHitList_bytes,
+	Int4 num_sequences)
 {
 	// copy result from device to host
 	if (GPU_VERBOSE)

@@ -62,13 +62,11 @@ void GPU_BLASTP(const BLAST_SequenceBlk* query,
 		Uint2** d_overflow,
 		Int4** d_RepeatedDiag_array);
 
-void GPU_BLASTP_get_data(const Int4* h_Hits,
-			 Int4* d_Hits,
-			 const Int4 h_Hits_bytes,
-			 GPUBlastInitHitList* h_GPUBlastInitHitList,
-			 GPUBlastInitHitList* d_GPUBlastInitHitList,
-			 const Int4 h_GPUBlastInitHitList_bytes,
-			 Int4 NumSequences);
+void GPU_BLASTP_get_data(
+	Int4* h_Hits, Int4* d_Hits, const Int4 h_Hits_bytes,
+	GPUBlastInitHitList* h_GPUBlastInitHitList,
+	GPUBlastInitHitList* d_GPUBlastInitHitList, Int4 h_GPUBlastInitHitList_bytes,
+	Int4 num_sequences);
 
 void GPU_BLASTP_free_memory(Int4** d_Hits,
 			    GPUBlastInitHitList** d_GPUBlastInitHitList,

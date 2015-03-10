@@ -40,28 +40,23 @@ __constant__ int d_query_offset_const[4096];
 */
 
 __global__ void
-GPU_BLASTP_kernelTwoHit( const int* d_Database2Dpadded,
-                         const int* d_RepeatedSubstitutionMatrix,
-                         const int SubstitutionMatrix_length,
-                         const PV_ARRAY_TYPE* d_RepeatedPV,
-                         const AaLookupSmallboneCell* d_ThickBackbone,                         
-                         const unsigned short* d_overflow,                         
-                         const int* d_RepeatedSequence_length_vector,
-                         const int Sequence_length_vector_stride,
-                         const int NumSequences,
-                         const int pv_length,
-                         const int Query_length,
-                         const int diag_mask,
-                         const int diag_array_length,
-                         const int num_queries,
-                         const int word_length,
-                         const int charsize,
-                         const int index_mask,
-                         const int window,
-                         int diag_offset,
-                         int* d_diag_array,
-                         int* d_Hits,
-                         GPUBlastInitHitList* d_GPUBlastInitHitList)
+GPU_BLASTP_kernelTwoHit(
+	const int* d_Database2Dpadded,
+	const int* d_RepeatedSubstitutionMatrix,
+	const int SubstitutionMatrix_length,
+	const PV_ARRAY_TYPE* d_RepeatedPV,
+	const AaLookupSmallboneCell* d_ThickBackbone,
+	const unsigned short* d_overflow,
+	const int* d_RepeatedSequence_length_vector,
+	const int Sequence_length_vector_stride,
+	const int NumSequences,
+	const int pv_length,
+	const int Query_length,
+	const int diag_mask, const int diag_array_length, const int num_queries,
+	const int word_length, const int charsize, const int index_mask,
+	const int window, int diag_offset,
+	int* d_diag_array, int* d_Hits,
+	GPUBlastInitHitList* d_GPUBlastInitHitList)
 {
     int bx = blockIdx.x;
     int tx = threadIdx.x;
