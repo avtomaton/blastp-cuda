@@ -1082,17 +1082,19 @@ GPU_BLAST_PreliminarySearchEngine(EBlastProgramType program_number,
 	  }
 	}
 
-        //The GPU arrays are declared here because we want to be able to deallocate them in this function. If we deallocated them in
-        //GPU_BLASTP() then that would act as an thread synchronizer, and wouldn't allow asynchronous execution
-        Int4 *d_Hits = NULL;
-        GPUBlastInitHitList* d_GPUBlastInitHitList = NULL;
-        Int4* d_Database2Dpadded = NULL;
-        Int4* d_RepeatedSubstitutionMatrix = NULL;
-        Int4* d_RepeatedSequence_length_vector = NULL;
-        PV_ARRAY_TYPE* d_RepeatedPV = NULL;
-        AaLookupSmallboneCell* d_ThickBackbone = NULL;
-        Uint2* d_overflow = NULL;
-        Int4* d_RepeatedDiag_array = NULL;
+	// The GPU arrays are declared here because we want to be able
+	// to deallocate them in this function. If we deallocated them in
+	// GPU_BLASTP() then that would act as an thread synchronizer,
+	// and wouldn't allow asynchronous execution
+	Int4 *d_Hits = NULL;
+	GPUBlastInitHitList* d_GPUBlastInitHitList = NULL;
+	Int4* d_Database2Dpadded = NULL;
+	Int4* d_RepeatedSubstitutionMatrix = NULL;
+	Int4* d_RepeatedSequence_length_vector = NULL;
+	PV_ARRAY_TYPE* d_RepeatedPV = NULL;
+	AaLookupSmallboneCell* d_ThickBackbone = NULL;
+	Uint2* d_overflow = NULL;
+	Int4* d_RepeatedDiag_array = NULL;
 
         sufficient_memory = GPU_BLASTP_check_memory(lookup_wrap, aux_struct->ewp,
                                                     gpu_options_local,

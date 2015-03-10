@@ -218,19 +218,18 @@ void GPU_BLASTP_get_data(const Int4* h_Hits,
                          const Int4 h_GPUBlastInitHitList_bytes,
                          const Int4 num_sequences)
 {
+	// copy result from device to host
+	if (GPU_VERBOSE)
+		fprintf(stderr,"threadId = 0: Transferring data from GPU...\n");
 
+	cudaMemcpy((void*) h_Hits, d_Hits, h_Hits_bytes, cudaMemcpyDeviceToHost) ;
+	cudaMemcpy(h_GPUBlastInitHitList, d_GPUBlastInitHitList,
+		h_GPUBlastInitHitList_bytes, cudaMemcpyDeviceToHost) ;
 
-    // copy result from device to host
-    if( GPU_VERBOSE )
-        fprintf(stderr,"threadId = 0: Transferring data from GPU...\n");
-
-    cudaMemcpy( (void*) h_Hits, d_Hits, h_Hits_bytes, cudaMemcpyDeviceToHost ) ;
-    cudaMemcpy( h_GPUBlastInitHitList, d_GPUBlastInitHitList, h_GPUBlastInitHitList_bytes, cudaMemcpyDeviceToHost ) ;
-
-    if( GPU_VERBOSE )
+	if (GPU_VERBOSE)
         fprintf(stderr,"threadId = 0: Done transferring data from GPU\n");
 
-    if( GPU_VERBOSE )
+	if (GPU_VERBOSE)
     {
         long unsigned int Total_Hits = 0, Total_Ext = 0, Total_Succ_Ext = 0;
         for( int Sequence = 0; Sequence < num_sequences; ++Sequence )
@@ -246,46 +245,43 @@ void GPU_BLASTP_get_data(const Int4* h_Hits,
 
 
         }
-
         fprintf(stderr,"\nTotal_Hits = %lu, Total_Ext = %lu, Total_Succ_Ext = %lu\n",Total_Hits,Total_Ext, Total_Succ_Ext);
-
     }
-
 }
 
 
-void GPU_BLASTP_free_memory(Int4** d_Hits, GPUBlastInitHitList** d_GPUBlastInitHitList,
-                            Int4** d_Database2Dpadded, Int4** d_RepeatedSubstitutionMatrix, Int4** d_RepeatedSequence_length_vector,
-                            PV_ARRAY_TYPE** d_RepeatedPV, AaLookupSmallboneCell** d_ThickBackbone, Uint2** d_overflow, Int4** d_RepeatedDiag_array)
+void GPU_BLASTP_free_memory(
+	Int4** d_Hits, GPUBlastInitHitList** d_GPUBlastInitHitList,
+	Int4** d_Database2Dpadded, Int4** d_RepeatedSubstitutionMatrix,
+	Int4** d_RepeatedSequence_length_vector,
+	PV_ARRAY_TYPE** d_RepeatedPV, AaLookupSmallboneCell** d_ThickBackbone,
+	Uint2** d_overflow, Int4** d_RepeatedDiag_array)
 {
+	cudaFree(*d_Hits);
+	cudaFree(*d_GPUBlastInitHitList);
+	cudaFree(*d_Database2Dpadded);
+	cudaFree(*d_RepeatedSubstitutionMatrix);
+	cudaFree(*d_RepeatedSequence_length_vector);
+	cudaFree(*d_RepeatedPV);
+	cudaFree(*d_ThickBackbone);
+	cudaFree(*d_overflow);
+	cudaFree(*d_RepeatedDiag_array);
 
-    cudaFree( *d_Hits ) ;
-    cudaFree( *d_GPUBlastInitHitList ) ;
-    cudaFree( *d_Database2Dpadded );
-    cudaFree( *d_RepeatedSubstitutionMatrix );
-    cudaFree( *d_RepeatedSequence_length_vector );
-    cudaFree( *d_RepeatedPV );
-    cudaFree( *d_ThickBackbone );
-    cudaFree( *d_overflow );
-    cudaFree( *d_RepeatedDiag_array );
-
-    cudaThreadExit();
-
+	cudaDeviceSynchronize();
 }
 
-Boolean GPU_BLASTP_check_memory(const LookupTableWrap* lookup_wrap,
-                                const Blast_ExtendWord* ewp,
-                                const BlastGPUOptions* gpu_options,
-                                const int h_Database2Dpadded_bytes,
-                                const Int4 h_Hits_bytes, const Int4 h_GPUBlastInitHitList_bytes,
-                                const Int4 Group_number, const Int4 num_queries,
-                                const Int4 query_length
-                                )
+Boolean GPU_BLASTP_check_memory(
+	const LookupTableWrap* lookup_wrap,
+		const Blast_ExtendWord* ewp,
+		const BlastGPUOptions* gpu_options,
+		const int h_Database2Dpadded_bytes,
+		const Int4 h_Hits_bytes, const Int4 h_GPUBlastInitHitList_bytes,
+		const Int4 Group_number, const Int4 num_queries,
+		const Int4 query_length)
 {
-
-    if( num_queries > NUM_QUERIES_MAX )
+	if (num_queries > NUM_QUERIES_MAX)
         return FALSE;
-    if( query_length > QUERY_LENGTH_MAX )
+	if (query_length > QUERY_LENGTH_MAX)
         return FALSE;
 
     int h_RepeatedSubstitutionMatrix_bytes = SUBSTITUTION_MATRIX_LENGTH * (gpu_options->num_blocksx) * sizeof(char);
@@ -308,7 +304,7 @@ Boolean GPU_BLASTP_check_memory(const LookupTableWrap* lookup_wrap,
         (unsigned long long int)diag_array_length * (gpu_options->num_blocksx)*(gpu_options->num_threadsx)*sizeof(int);
 
 
-    unsigned long long int Total_global_memory_bytes  =
+	size_t Total_global_memory_bytes  =
         h_Database2Dpadded_bytes +
         h_RepeatedSubstitutionMatrix_bytes +
         h_RepeatedSequence_length_vector_bytes +
@@ -321,12 +317,11 @@ Boolean GPU_BLASTP_check_memory(const LookupTableWrap* lookup_wrap,
 
     cudaDeviceProp deviceProp;
     cudaGetDeviceProperties(&deviceProp, 0);
-    unsigned long long int GPU_global_memory = (unsigned long long int) deviceProp.totalGlobalMem;
-    if( Total_global_memory_bytes > GPU_global_memory) {
+	size_t gpu_global_memory = deviceProp.totalGlobalMem;
+	if (Total_global_memory_bytes > gpu_global_memory)
         return FALSE;
-    }
-
-    return TRUE;
+	else
+		return TRUE;
 }
 
 Boolean GPU_BLAST_check_availability()
